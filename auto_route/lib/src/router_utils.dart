@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:io' show Platform;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -15,8 +15,7 @@ PageRoute defaultUnknownRoutePage(RouteSettings settings) => MaterialPageRoute(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 8),
                 child: Text(
                   'Route name ${settings.name} is not found!',
                   textAlign: TextAlign.center,
@@ -34,39 +33,6 @@ PageRoute defaultUnknownRoutePage(RouteSettings settings) => MaterialPageRoute(
         ),
       ),
     );
-
-PageRoute misTypedArgsRoute<T>(Object args) {
-  return MaterialPageRoute(
-    builder: (ctx) => Scaffold(
-      body: Container(
-        color: Colors.redAccent,
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'Arguments Mistype!',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 20),
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              'Expected (${T.toString()}),  found (${args.runtimeType})',
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16.0),
-            OutlineButton.icon(
-              label: Text('Back'),
-              icon: Icon(Icons.arrow_back),
-              onPressed: () => Navigator.of(ctx).pop(),
-            )
-          ],
-        ),
-      ),
-    ),
-  );
-}
 
 PageRoute<T> buildAdaptivePageRoute<T>({
   @required WidgetBuilder builder,

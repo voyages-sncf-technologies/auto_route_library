@@ -10,28 +10,30 @@ import '../screens/users/sub/sub/posts_details.dart';
 import '../screens/users/sub/sub/posts_home.dart';
 import '../screens/users/users_screen.dart';
 
-@MaterialAutoRouter(
+@AutoRouter(
   generateNavigationHelperExtension: true,
+  defaultRouteType: MaterialRouteType(),
   routes: <AutoRoute>[
-    AdaptiveRoute(page: HomeScreen, initial: true, guards: [AuthGuard]),
-    AdaptiveRoute<void>(
+    MaterialRoute(page: HomeScreen, initial: true, guards: [AuthGuard]),
+    AutoRoute<void>(
       path: '/users/:id',
       page: UsersScreen,
       name: 'usersScreen',
+      type: MaterialRouteType(fullscreenDialog: true),
       children: [
-        AdaptiveRoute(path: '/', page: ProfileScreen),
-        AdaptiveRoute(
+        AutoRoute(path: '/', page: ProfileScreen),
+        AutoRoute(
           path: '/posts',
           page: PostsScreen,
           children: [
-            AdaptiveRoute(path: '/', page: PostsHome),
-            AdaptiveRoute(path: '/details', page: PostDetails),
+            AutoRoute(path: '/', page: PostsHome),
+            AutoRoute(path: '/details', page: PostDetails),
           ],
         ),
       ],
     ),
-    AdaptiveRoute<bool>(path: '/login', page: LoginScreen),
-    AdaptiveRoute(path: '*', page: UnknownRouteScreen)
+    AutoRoute<bool>(path: '/login', page: LoginScreen),
+    AutoRoute(path: '*', page: UnknownRouteScreen)
   ],
 )
 class $Router {}

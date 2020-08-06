@@ -13,7 +13,7 @@ import '../utils.dart';
 class RouterConfig {
   final bool generateNavigationHelper;
   final List<RouteConfig> routes;
-  final RouteConfig globalRouteConfig;
+  final RouteType defaultRouteType;
   final String routesClassName;
   final String routeNamePrefix;
   final String routerClassName;
@@ -21,7 +21,7 @@ class RouterConfig {
   RouterConfig({
     this.generateNavigationHelper,
     this.routes,
-    this.globalRouteConfig,
+    this.defaultRouteType,
     this.routesClassName,
     this.routeNamePrefix,
     this.routerClassName,
@@ -30,29 +30,24 @@ class RouterConfig {
   RouterConfig copyWith({
     bool generateNavigationHelper,
     List<RouteConfig> routes,
-    RouteConfig globalRouteConfig,
+    RouteConfig defaultRouteType,
     String routesClassName,
     String routeNamePrefix,
     String routerClassName,
   }) {
     return RouterConfig(
-      generateNavigationHelper:
-          generateNavigationHelper ?? this.generateNavigationHelper,
+      generateNavigationHelper: generateNavigationHelper ?? this.generateNavigationHelper,
       routes: routes ?? this.routes,
-      globalRouteConfig: globalRouteConfig ?? this.globalRouteConfig,
+      defaultRouteType: defaultRouteType ?? this.defaultRouteType,
       routesClassName: routesClassName ?? this.routesClassName,
       routeNamePrefix: routeNamePrefix ?? this.routeNamePrefix,
       routerClassName: routerClassName ?? this.routerClassName,
     );
   }
 
-  List<RouterConfig> get subRouters => routes
-      .where((e) => e.routerConfig != null)
-      .map((e) => e.routerConfig)
-      .toList();
+  List<RouterConfig> get subRouters => routes.where((e) => e.routerConfig != null).map((e) => e.routerConfig).toList();
 
-  List<RouterConfig> get collectAllRoutersIncludingParent => subRouters.fold(
-      [this], (all, e) => all..addAll(e.collectAllRoutersIncludingParent));
+  List<RouterConfig> get collectAllRoutersIncludingParent => subRouters.fold([this], (all, e) => all..addAll(e.collectAllRoutersIncludingParent));
 
   @override
   String toString() {
@@ -65,8 +60,7 @@ class RouterConfigResolver {
 
   RouterConfigResolver(this._importResolver);
 
-  Future<RouterConfig> resolve(
-      ConstantReader autoRouter, ClassElement clazz) async {
+  Future<RouterConfig> resolve(ConstantReader autoRouter, ClassElement clazz) async {
     // ensure router config classes are prefixed with $
     // to use the stripped name for the generated class
     throwIf(
@@ -74,28 +68,23 @@ class RouterConfigResolver {
       'Router class name must be prefixed with \$',
       element: clazz,
     );
+    print(autoRouter);
+    var routeTypeReader = ConstantReader(autoRouter.peek('defaultRouteType').objectValue);
 
-    var globalRouteConfig = RouteConfig();
-    if (autoRouter.instanceOf(TypeChecker.fromRuntime(CupertinoAutoRouter))) {
-      globalRouteConfig.routeType = RouteType.cupertino;
-    } else if (autoRouter
-        .instanceOf(TypeChecker.fromRuntime(AdaptiveAutoRouter))) {
-      globalRouteConfig.routeType = RouteType.adaptive;
-    } else if (autoRouter
-        .instanceOf(TypeChecker.fromRuntime(CustomAutoRouter))) {
-      globalRouteConfig.routeType = RouteType.custom;
-      globalRouteConfig.durationInMilliseconds =
-          autoRouter.peek('durationInMilliseconds')?.intValue;
-      globalRouteConfig.customRouteOpaque =
-          autoRouter.peek('opaque')?.boolValue;
-      globalRouteConfig.customRouteBarrierDismissible =
-          autoRouter.peek('barrierDismissible')?.boolValue;
-      final function =
-          autoRouter.peek('transitionsBuilder')?.objectValue?.toFunctionValue();
+
+    RouteType defaultRouteType;
+    if (autoRouter.instanceOf(TypeChecker.fromRuntime(CupertinoRouteType))) {
+      defaultRouteType = CupertinoRouteType();
+    } else if (autoRouter.instanceOf(TypeChecker.fromRuntime(AdaptiveRouteType))) {
+      defaultRouteType = AdaptiveRouteType();
+    } else if (autoRouter.instanceOf(TypeChecker.fromRuntime(CustomRouteType))) {
+      final durationInMilliseconds = autoRouter.peek('durationInMilliseconds')?.intValue;
+      final opague = autoRouter.peek('opaque')?.boolValue;
+      final barrierDismissible = autoRouter.peek('barrierDismissible')?.boolValue;
+      final function = autoRouter.peek('transitionsBuilder')?.objectValue?.toFunctionValue();
       if (function != null) {
         final displayName = function.displayName.replaceFirst(RegExp('^_'), '');
-        final functionName = (function.isStatic &&
-                function.enclosingElement?.displayName != null)
+        final functionName = (function.isStatic && function.enclosingElement?.displayName != null)
             ? '${function.enclosingElement.displayName}.$displayName'
             : displayName;
 
@@ -103,21 +92,23 @@ class RouterConfigResolver {
         if (function.enclosingElement?.name != 'TransitionsBuilders') {
           import = _importResolver.resolve(function);
         }
-        globalRouteConfig.transitionBuilder =
-            CustomTransitionBuilder(functionName, import);
+        defaultRouteType = CustomRouteType(
+          durationInMilliseconds: durationInMilliseconds,
+          opaque: opague,
+          barrierDismissible: barrierDismissible,
+//          transitionsBuilder: CustomTransitionBuilder(functionName,import)
+        );
+
       }
     }
-    var generateNavigationExt =
-        autoRouter.peek('generateNavigationHelperExtension')?.boolValue ??
-            false;
+    var generateNavigationExt = autoRouter.peek('generateNavigationHelperExtension')?.boolValue ?? false;
     var routeNamePrefix = autoRouter.peek('routePrefix')?.stringValue ?? '/';
-    var routesClassName =
-        autoRouter.peek('routesClassName')?.stringValue ?? 'Routes';
+    var routesClassName = autoRouter.peek('routesClassName')?.stringValue ?? 'Routes';
 
     final autoRoutes = autoRouter.read('routes').listValue;
 
     var routerConfig = RouterConfig(
-      globalRouteConfig: globalRouteConfig,
+      defaultRouteType: defaultRouteType,
       routerClassName: clazz.displayName.substring(1),
       routesClassName: routesClassName,
       routeNamePrefix: routeNamePrefix,
@@ -128,8 +119,7 @@ class RouterConfigResolver {
     return routerConfig.copyWith(routes: routes);
   }
 
-  Future<List<RouteConfig>> _resolveRoutes(
-      RouterConfig routerConfig, List<DartObject> routesList) async {
+  Future<List<RouteConfig>> _resolveRoutes(RouterConfig routerConfig, List<DartObject> routesList) async {
     var routeResolver = RouteConfigResolver(routerConfig, _importResolver);
     final routes = <RouteConfig>[];
     for (var entry in routesList) {

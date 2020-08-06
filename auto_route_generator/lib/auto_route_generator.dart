@@ -7,7 +7,7 @@ import 'package:auto_route_generator/utils.dart';
 import 'package:build/build.dart';
 import 'package:source_gen/source_gen.dart';
 
-class AutoRouteGenerator extends GeneratorForAnnotation<AutoRouterAnnotation> {
+class AutoRouteGenerator extends GeneratorForAnnotation<AutoRouter> {
   @override
   dynamic generateForAnnotatedElement(
     Element element,

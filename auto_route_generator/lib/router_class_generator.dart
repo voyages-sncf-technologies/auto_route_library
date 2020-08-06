@@ -1,3 +1,4 @@
+import 'package:auto_route/auto_route_annotations.dart';
 import 'package:auto_route_generator/route_config_resolver.dart';
 import 'package:auto_route_generator/utils.dart';
 
@@ -17,8 +18,7 @@ class RouterClassGenerator {
   String generate() {
     _writeln("// ignore_for_file: public_member_api_docs");
     var allRouters = _rootRouterConfig.collectAllRoutersIncludingParent;
-    var allRoutes = allRouters.fold<List<RouteConfig>>(
-        [], (all, e) => all..addAll(e.routes)).toList();
+    var allRoutes = allRouters.fold<List<RouteConfig>>([], (all, e) => all..addAll(e.routes)).toList();
     _generateImports(allRoutes);
 
     allRouters.forEach((routerConfig) {
@@ -39,11 +39,8 @@ class RouterClassGenerator {
     // write route imports
     final imports = <String>{
       "package:auto_route/auto_route.dart",
-      if (routes.any((e) =>
-          e.routeType == RouteType.material || e.routeType == RouteType.custom))
-        "package:flutter/material.dart",
-      if (routes.any((e) => e.routeType == RouteType.cupertino))
-        "package:flutter/cupertino.dart",
+      if (routes.any((e) => e.routeType is MaterialRouteType || e.routeType is CustomRouteType)) "package:flutter/material.dart",
+      if (routes.any((e) => e.routeType is CupertinoRouteType)) "package:flutter/cupertino.dart",
     };
     routes.forEach((r) {
       imports.addAll(r.imports);
@@ -61,13 +58,11 @@ class RouterClassGenerator {
     });
 
     var validImports = imports.where((import) => import != null).toSet();
-    var dartImports =
-        validImports.where((element) => element.startsWith('dart')).toSet();
+    var dartImports = validImports.where((element) => element.startsWith('dart')).toSet();
     _sortAndGenerate(dartImports);
     _newLine();
 
-    var packageImports =
-        validImports.where((element) => element.startsWith('package')).toSet();
+    var packageImports = validImports.where((element) => element.startsWith('package')).toSet();
     _sortAndGenerate(packageImports);
     _newLine();
 
@@ -205,9 +200,7 @@ class RouterClassGenerator {
     // routes with parameters
     // also prevent duplicate class with the same name from being generated;
 
-    routes
-        .where((r) => r.argParams.isNotEmpty)
-        .forEach((r) => routesWithArgsHolders[r.className] = r);
+    routes.where((r) => r.argParams.isNotEmpty).forEach((r) => routesWithArgsHolders[r.className] = r);
 
     if (routesWithArgsHolders.isNotEmpty) {
       _generateBoxed('Arguments holder classes');
@@ -277,38 +270,32 @@ class RouterClassGenerator {
 
   void _generateRouteBuilder(RouteConfig r, String constructor) {
     final returnType = r.returnType ?? 'dynamic';
-    if (r.routeType == RouteType.cupertino) {
-      _write(
-          'return CupertinoPageRoute<$returnType>(builder: (context) => $constructor, settings: data,');
+    if (r.routeType is CupertinoRouteType) {
+      _write('return CupertinoPageRoute<$returnType>(builder: (context) => $constructor, settings: data,');
       if (r.cupertinoNavTitle != null) {
         _write("title:'${r.cupertinoNavTitle}',");
       }
-    } else if (r.routeType == RouteType.material) {
-      _write(
-          'return MaterialPageRoute<$returnType>(builder: (context) => $constructor, settings: data,');
-    } else if (r.routeType == RouteType.adaptive) {
-      _write(
-          'return buildAdaptivePageRoute<$returnType>(builder: (context) => $constructor, settings: data,');
+    } else if (r.routeType is MaterialRouteType) {
+      _write('return MaterialPageRoute<$returnType>(builder: (context) => $constructor, settings: data,');
+    } else if (r.routeType is AdaptiveRouteType) {
+      _write('return buildAdaptivePageRoute<$returnType>(builder: (context) => $constructor, settings: data,');
       if (r.cupertinoNavTitle != null) {
         _write("cupertinoTitle:'${r.cupertinoNavTitle}',");
       }
     } else {
-      _write(
-          'return PageRouteBuilder<$returnType>(pageBuilder: (context, animation, secondaryAnimation) => $constructor, settings: data,');
+      _write('return PageRouteBuilder<$returnType>(pageBuilder: (context, animation, secondaryAnimation) => $constructor, settings: data,');
 
       if (r.customRouteOpaque != null) {
         _write('opaque:${r.customRouteOpaque.toString()},');
       }
       if (r.customRouteBarrierDismissible != null) {
-        _write(
-            'barrierDismissible:${r.customRouteBarrierDismissible.toString()},');
+        _write('barrierDismissible:${r.customRouteBarrierDismissible.toString()},');
       }
       if (r.transitionBuilder != null) {
         _write('transitionsBuilder: ${r.transitionBuilder.name},');
       }
       if (r.durationInMilliseconds != null) {
-        _write(
-            'transitionDuration: const Duration(milliseconds: ${r.durationInMilliseconds}),');
+        _write('transitionDuration: const Duration(milliseconds: ${r.durationInMilliseconds}),');
       }
     }
     // generated shared props
@@ -324,8 +311,7 @@ class RouterClassGenerator {
 
   void _generateNavigationHelpers(RouterConfig routerConfig) {
     _generateBoxed('Navigation helper methods extension');
-    _writeln(
-        'extension ${routerConfig.routerClassName}ExtendedNavigatorStateX on ExtendedNavigatorState {');
+    _writeln('extension ${routerConfig.routerClassName}ExtendedNavigatorStateX on ExtendedNavigatorState {');
     for (var route in routerConfig.routes) {
       // skip routes that has path params until
       // until there's a practical way to handle them

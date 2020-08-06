@@ -1,3 +1,4 @@
+import 'package:auto_route/auto_route_annotations.dart';
 import 'package:auto_route_generator/route_config_resolver.dart';
 
 import 'custom_transition_builder.dart';
@@ -19,7 +20,7 @@ class RouteConfig {
   List<RouteParamConfig> parameters;
   CustomTransitionBuilder transitionBuilder;
   int durationInMilliseconds;
-  int routeType = RouteType.material;
+  RouteType routeType = const MaterialRouteType();
   List<RouteGuardConfig> guards = [];
   String cupertinoNavTitle;
   bool hasWrapper;
@@ -45,9 +46,9 @@ class RouteConfig {
   }
 }
 
-class RouteType {
-  static const int material = 0;
-  static const int cupertino = 1;
-  static const int adaptive = 2;
-  static const int custom = 3;
-}
+//class RouteType {
+//  static const int material = 0;
+//  static const int cupertino = 1;
+//  static const int adaptive = 2;
+//  static const int custom = 3;
+//}
