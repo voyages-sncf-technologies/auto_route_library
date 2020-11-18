@@ -15,6 +15,7 @@ class RouterClassGenerator {
   void _newLine() => _stringBuffer.writeln();
 
   String generate() {
+    _writeln("// @dart=2.9");
     _writeln("// ignore_for_file: public_member_api_docs");
     var allRouters = _rootRouterConfig.collectAllRoutersIncludingParent;
     var allRoutes = allRouters.fold<List<RouteConfig>>(
